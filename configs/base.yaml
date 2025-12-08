@@ -1,0 +1,182 @@
+# Base Configuration for Low-Light Pedestrian Risk Detection
+
+# Data Configuration
+data:
+  root: "data/"
+  dataset: "kaist"  # kaist, llvip, flir
+  batch_size: 8
+  num_workers: 4
+  image_size: [640, 480]  # [width, height]
+  
+  # Data splits
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  
+  # Preprocessing
+  normalize: true
+  mean_rgb: [0.485, 0.456, 0.406]
+  std_rgb: [0.229, 0.224, 0.225]
+  mean_thermal: [0.5]
+  std_thermal: [0.5]
+  
+  # Alignment
+  alignment:
+    method: "sift_ransac"
+    max_error: 1.8  # pixels
+    
+  # CLAHE for thermal noise reduction
+  clahe:
+    enabled: true
+    clip_limit: 2.0
+    tile_grid_size: [8, 8]
+
+# Model Configuration
+model:
+  type: "mid_fusion"  # baseline_rgb, baseline_thermal, early_fusion, mid_fusion
+  
+  # Backbone
+  backbone:
+    type: "resnet34"
+    pretrained: true
+    frozen_stages: 1
+    
+  # Fusion
+  fusion:
+    type: "bi_xattn"  # early, bi_xattn
+    num_heads: 8
+    hidden_dim: 256
+    dropout: 0.1
+    
+  # Detection Head
+  detection_head:
+    num_classes: 3  # person, people, cyclist
+    num_anchors: 9
+    
+  # Risk Head
+  risk_head:
+    enabled: true
+    input_features: ["bbox_geometry", "velocity", "embeddings"]
+    hidden_dims: [256, 128, 64]
+    
+  # Intent Head (future)
+  intent_head:
+    enabled: false
+    num_classes: 3  # crossing, standing, walking_along
+
+# Training Configuration
+training:
+  epochs: 100
+  start_epoch: 0
+  
+  # Optimizer
+  optimizer:
+    type: "adam"
+    lr: 0.001
+    weight_decay: 0.0001
+    betas: [0.9, 0.999]
+    
+  # Learning Rate Scheduler
+  scheduler:
+    type: "cosine"
+    min_lr: 0.00001
+    warmup_epochs: 5
+    warmup_lr: 0.0001
+    
+  # Loss Weights
+  loss_weights:
+    detection: 1.0
+    classification: 1.0
+    risk: 0.5
+    
+  # Mixed Precision Training
+  mixed_precision: true
+  
+  # Gradient Accumulation (for limited GPU memory)
+  gradient_accumulation_steps: 4
+  
+  # Gradient Clipping
+  grad_clip:
+    enabled: true
+    max_norm: 10.0
+    
+  # Checkpointing
+  checkpoint:
+    save_freq: 5  # epochs
+    save_best: true
+    metric: "mAP@0.5"
+    mode: "max"
+
+# Evaluation Configuration
+evaluation:
+  # Detection Metrics
+  iou_threshold: 0.5
+  confidence_threshold: 0.25
+  nms_threshold: 0.45
+  
+  # Calibration
+  calibration:
+    enabled: true
+    method: "temperature_scaling"
+    
+  # Metrics to compute
+  metrics:
+    - "mAP@0.5"
+    - "mAP@0.75"
+    - "mAP@[0.5:0.95]"
+    - "precision"
+    - "recall"
+    - "ECE"
+    - "brier_score"
+
+# Augmentation Configuration
+augmentation:
+  train:
+    horizontal_flip: 0.5
+    vertical_flip: 0.0
+    rotation: 10  # degrees
+    scale: [0.8, 1.2]
+    brightness: 0.2
+    contrast: 0.2
+    
+  val:
+    enabled: false
+    
+  test:
+    enabled: false
+
+# Logging Configuration
+logging:
+  log_dir: "logs/"
+  tensorboard: true
+  wandb:
+    enabled: false
+    project: "low-light-pedestrian-detection"
+    entity: ""
+    
+  # Logging frequency
+  print_freq: 10  # iterations
+  save_freq: 100  # iterations
+
+# Hardware Configuration
+hardware:
+  device: "cuda"  # cuda, cpu
+  gpu_ids: [0]
+  num_gpus: 1
+  
+  # For multi-GPU training
+  distributed:
+    enabled: false
+    backend: "nccl"
+    
+# Reproducibility
+seed: 42
+deterministic: true
+benchmark: false
+
+# Experiment Configuration
+experiment:
+  name: "base_experiment"
+  output_dir: "experiments/"
+  resume: false
+  resume_path: ""
