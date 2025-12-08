@@ -159,7 +159,26 @@ pip install -r requirements_lite.txt
 - numpy >= 1.24.0
 - tqdm >= 4.65.0
 
-### Using the Pre-trained Model
+### Running the Demo
+
+The easiest way to see the model in action is to run the demo script:
+
+```bash
+python show_model_info.py
+```
+
+This will display:
+- Model file information (size, location)
+- Architecture details (MobileNetV3 dual-stream)
+- Training configuration (Colab, 30 epochs, 1.5-2 hours)
+- Model specifications (7.1M parameters, input/output shapes)
+- Key features and contributions
+
+**No dataset required!** The demo script shows model information without needing actual images.
+
+### Using the Pre-trained Model (Advanced)
+
+If you want to run actual inference with RGB-Thermal image pairs:
 
 ```python
 import torch
@@ -219,8 +238,11 @@ for epoch in range(num_epochs):
 ```
 c:\PROJECTS\CV\FINAL PROJECT NEW\
 ├── README.md                      # This file
+├── FINAL_REPORT.pdf              # Final project report (IEEE format)
 ├── best_model.pth                 # Pre-trained model (28.98 MB)
 ├── results.png                    # Training results visualization
+├── training_notebook.ipynb        # Complete Colab training notebook
+├── show_model_info.py            # Demo script (displays model info)
 ├── requirements_lite.txt          # Minimal dependencies
 ├── configs/
 │   └── base.yaml                  # Configuration file
@@ -229,13 +251,13 @@ c:\PROJECTS\CV\FINAL PROJECT NEW\
 │   ├── model_lite.py              # FastPedestrianDetector model
 │   ├── dataset_lite.py            # FastKAISTDataset loader
 │   ├── utils.py                   # Training utilities
-│   └── utils/
+│   └── utils/                     # Utility modules
 │       ├── checkpoint.py          # Checkpoint management
 │       ├── config.py              # Config utilities
 │       └── logger.py              # Logging utilities
-└── data/
-    └── kaist/                     # KAIST dataset directory
 ```
+
+**Note**: The dataset was accessed directly from Kaggle in Google Colab during training, so no local data directory is included.
 
 ##  Technical Details
 
