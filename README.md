@@ -1,247 +1,262 @@
-# Low-Light Pedestrian Risk Detection from Thermal + RGB Fusion
+# Fast Pedestrian Detection with RGB-Thermal Fusion
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch 2.4+](https://img.shields.io/badge/pytorch-2.4+-red.svg)](https://pytorch.org/)
+[![PyTorch 2.0+](https://img.shields.io/badge/pytorch-2.0+-red.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> A risk-aware perception system combining visible (RGB) and thermal (LWIR) imagery for robust pedestrian detection and collision risk assessment in low-light and adverse weather conditions.
+> A lightweight pedestrian detection system combining RGB and Thermal imagery, optimized for fast training on Google Colab with limited resources.
 
 ## 🎯 Project Overview
 
-This project implements a multimodal fusion architecture that:
-- **Detects pedestrians** in challenging lighting conditions (night, fog, rain)
-- **Assesses collision risk** using calibrated confidence scores
-- **Predicts crossing intent** (future work)
-- **Generalizes across datasets** (KAIST, LLVIP, FLIR ADAS)
+This project implements a **fast, lightweight pedestrian detector** designed for:
+- **Quick training** on Google Colab (2-3 hours on T4 GPU)
+- **Limited data** (10% subset of KAIST dataset)
+- **Efficient inference** with MobileNetV3 backbone
+- **Multimodal fusion** of RGB and Thermal images
 
 ### Key Features
 
-✅ **Dual-Stream Architecture**: ResNet-34 backbone with separate RGB and Thermal encoders  
-✅ **Bi-Directional Cross-Attention**: Novel fusion mechanism for modality integration  
-✅ **Risk Calibration**: Temperature scaling to reduce Expected Calibration Error (ECE)  
-✅ **Multi-Dataset Support**: KAIST, LLVIP, and FLIR ADAS datasets  
-✅ **SOTA Performance**: 0.64 mAP@0.5 on KAIST night scenes with ECE of 0.041  
+✅ **Lightweight Architecture**: MobileNetV3-Small backbone (~2.5M parameters)  
+✅ **Dual-Stream Fusion**: Separate RGB and Thermal encoders with simple concatenation  
+✅ **Fast Training**: Optimized for Colab with mixed precision training  
+✅ **Minimal Dependencies**: Only essential packages required  
+✅ **Ready to Deploy**: Pre-trained model included
 
-## 📊 Performance
-
-| Model | Dataset | Scene | mAP@0.5 | ECE |
-|-------|---------|-------|---------|-----|
-| RGB-only | KAIST | Night | 0.41 | — |
-| Thermal-only | KAIST | Night | 0.55 | — |
-| Early Fusion (4-ch) | KAIST | Night | 0.59 | 0.093 |
-| **Mid Fusion (Bi-XAttn)** | KAIST | Night | **0.64** | **0.041** |
-
-## 🏗️ Architecture
+## 📊 Model Architecture
 
 ```
 Input: RGB (3-ch) + Thermal (1-ch)
          ↓
-    ┌────────────────┐
-    │ Dual-Stream    │
-    │ ResNet-34      │
-    │ Backbone       │
-    └────────────────┘
+    ┌─────────────────┐
+    │ MobileNetV3     │
+    │ Dual Backbone   │
+    │ (RGB + Thermal) │
+    └─────────────────┘
          ↓
-    ┌────────────────┐
-    │ Bi-Directional │
-    │ Cross-Attention│
-    │ Fusion Neck    │
-    └────────────────┘
+    ┌─────────────────┐
+    │ Concatenation   │
+    │ Fusion (1x1)    │
+    └─────────────────┘
          ↓
-    ┌────────────────┐
-    │ Detection Head │
-    │ + Risk Head    │
-    └────────────────┘
+    ┌─────────────────┐
+    │ Detection Head  │
+    │ (Conv layers)   │
+    └─────────────────┘
          ↓
-    Output: Bboxes + Risk Scores
+    Output: Bboxes + Classes
 ```
+
+**Architecture Details:**
+- **Backbone**: MobileNetV3-Small (pretrained on ImageNet)
+- **RGB Stream**: 3-channel input → 576 feature channels
+- **Thermal Stream**: 1-channel input → 576 feature channels
+- **Fusion**: Concatenation (1152 channels) → 1x1 Conv → 512 channels
+- **Detection Head**: 3-layer CNN → Class scores + Bounding boxes
+- **Total Parameters**: ~2.5M (2x faster than ResNet-34)
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/low-light-pedestrian-risk-detection.git
-cd low-light-pedestrian-risk-detection
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
 # Install dependencies
-pip install -r requirements.txt
-
-# Install the package
-pip install -e .
+pip install -r requirements_lite.txt
 ```
 
-### Dataset Preparation
+**Requirements:**
+- PyTorch >= 2.0.0
+- torchvision >= 0.15.0
+- Pillow >= 9.0.0
+- numpy >= 1.24.0
+- tqdm >= 4.65.0
 
-1. **Download datasets** (KAIST, LLVIP, FLIR ADAS)
-2. **Organize** into `data/` directory structure
-3. **Preprocess** and align RGB-Thermal pairs
+### Using the Pre-trained Model
 
-```bash
-# Download KAIST dataset
-python scripts/download_datasets.py --dataset kaist --output data/kaist/raw
+```python
+import torch
+from src.model_lite import FastPedestrianDetector
 
-# Preprocess and align
-python scripts/preprocess_data.py --dataset kaist --align --output data/kaist/processed
+# Load model
+model = FastPedestrianDetector(pretrained=False)
+checkpoint = torch.load('best_model.pth', map_location='cpu')
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+# Prepare input (RGB + Thermal images)
+images = {
+    'rgb': rgb_tensor,      # Shape: (B, 3, H, W)
+    'thermal': thermal_tensor  # Shape: (B, 1, H, W)
+}
+
+# Run inference
+with torch.no_grad():
+    outputs = model(images)
+    detections = outputs['detections']  # (B, num_classes+4, H', W')
 ```
 
-### Training
+### Training from Scratch
 
-```bash
-# Train baseline RGB-only model
-python scripts/train.py --config configs/baseline_rgb.yaml
+```python
+from src.dataset_lite import create_dataloaders
+from src.model_lite import create_model, SimpleLoss
+from src.utils import train_one_epoch, validate, save_checkpoint
 
-# Train early fusion model
-python scripts/train.py --config configs/early_fusion.yaml
+# Create dataloaders
+train_loader, val_loader, test_loader = create_dataloaders(
+    root_dir='data/kaist/raw',
+    batch_size=16,
+    num_workers=2
+)
 
-# Train mid-fusion model with Bi-XAttn
-python scripts/train.py --config configs/mid_fusion.yaml
-```
+# Create model
+model = create_model(pretrained=True, device='cuda')
+criterion = SimpleLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+scaler = torch.cuda.amp.GradScaler()
 
-### Evaluation
-
-```bash
-# Evaluate on KAIST test set
-python scripts/evaluate.py --config configs/mid_fusion.yaml --checkpoint experiments/mid_fusion/best.pth
-
-# Cross-dataset evaluation
-python scripts/evaluate.py --config configs/mid_fusion.yaml --checkpoint experiments/mid_fusion/best.pth --dataset llvip
-```
-
-### Inference
-
-```bash
-# Run inference on images
-python scripts/inference.py --config configs/mid_fusion.yaml --checkpoint experiments/mid_fusion/best.pth --input path/to/images --output results/
+# Training loop
+for epoch in range(num_epochs):
+    train_loss = train_one_epoch(model, train_loader, criterion, optimizer, scaler)
+    val_loss = validate(model, val_loader, criterion)
+    
+    print(f"Epoch {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}")
+    
+    # Save checkpoint
+    save_checkpoint(model, optimizer, epoch, val_loss, f'checkpoint_epoch_{epoch}.pth')
 ```
 
 ## 📁 Project Structure
 
 ```
-low-light-pedestrian-risk-detection/
-├── data/                      # Datasets
-│   ├── kaist/
-│   ├── llvip/
-│   └── flir/
-├── src/                       # Source code
-│   ├── data/                  # Data processing
-│   ├── models/                # Model architectures
-│   ├── training/              # Training utilities
-│   ├── evaluation/            # Evaluation metrics
-│   └── utils/                 # Helper functions
-├── configs/                   # Configuration files
-├── scripts/                   # Training/evaluation scripts
-├── notebooks/                 # Jupyter notebooks
-├── experiments/               # Experiment outputs
-├── docs/                      # Documentation
-└── tests/                     # Unit tests
+c:\PROJECTS\CV\FINAL PROJECT NEW\
+├── README.md                      # This file
+├── best_model.pth                 # Pre-trained model (28.98 MB)
+├── results.png                    # Training results visualization
+├── requirements_lite.txt          # Minimal dependencies
+├── configs/
+│   └── base.yaml                  # Configuration file
+├── src/
+│   ├── __init__.py
+│   ├── model_lite.py              # FastPedestrianDetector model
+│   ├── dataset_lite.py            # FastKAISTDataset loader
+│   ├── utils.py                   # Training utilities
+│   └── utils/
+│       ├── checkpoint.py          # Checkpoint management
+│       ├── config.py              # Config utilities
+│       └── logger.py              # Logging utilities
+└── data/
+    └── kaist/                     # KAIST dataset directory
 ```
 
 ## 🔬 Technical Details
 
-### RGB-Thermal Alignment
-- **Method**: SIFT feature detection + RANSAC homography estimation
-- **Accuracy**: <1.8px mean alignment error
-- **Output**: Aligned 4-channel tensors [RGB, Thermal]
+### Dataset: KAIST Multispectral Pedestrian Dataset
 
-### Bi-Directional Cross-Attention
-- **Query**: RGB features → Attend to Thermal features
-- **Key/Value**: Thermal features → Attend to RGB features
-- **Mechanism**: Multi-head attention with residual connections
-- **Benefit**: Adaptive modality fusion based on scene context
+- **Subset Used**: set00 only (10% of full dataset for fast training)
+- **Image Size**: Resized to 320×240 for efficiency
+- **Modalities**: RGB (visible) + LWIR (thermal)
+- **Split**: 70% train, 15% validation, 15% test
+- **Augmentation**: Horizontal flip, color jitter (training only)
 
-### Risk Calibration
-- **Method**: Temperature scaling on validation set
-- **Input**: Bounding box geometry + centroid velocity + fused embeddings
-- **Output**: Calibrated risk score [0, 1]
-- **Metric**: Expected Calibration Error (ECE)
+### Training Optimizations
 
-## 📚 Datasets
+1. **Mixed Precision Training**: Using `torch.cuda.amp` for faster training
+2. **Lightweight Backbone**: MobileNetV3-Small instead of ResNet
+3. **Small Image Size**: 320×240 instead of 640×480
+4. **Limited Data**: 10% subset for 2-3 hour training time
+5. **Simple Fusion**: Concatenation instead of complex attention mechanisms
 
-### KAIST Multispectral Pedestrian Dataset
-- 95,000 RGB-Thermal image pairs
-- 640×480 resolution @ 20 fps
-- Day/night scenes from moving vehicle
-- 100,000+ bounding box annotations
+### Model Performance
 
-### LLVIP (Low-Light Visible-Infrared Paired Dataset)
-- 30,976 RGB-Thermal image pairs
-- Focus on low-light conditions
-- Diverse urban scenarios
+- **Parameters**: ~2.5M (lightweight)
+- **Training Time**: 2-3 hours on Colab T4 GPU
+- **Inference Speed**: ~2x faster than ResNet-34 based models
+- **Memory Usage**: Optimized for Colab's 15GB GPU memory
 
-### FLIR ADAS Dataset
-- 10,228 thermal images
-- Real-world driving scenarios
-- Pre-annotated pedestrians
+## 📚 Dataset Setup
 
-## 🛠️ Development
+### Option 1: Download from Kaggle
 
-### Running Tests
-```bash
-pytest tests/
+```python
+import kagglehub
+path = kagglehub.dataset_download("anirudhkrishna/kaist-dataset")
+print("Dataset path:", path)
 ```
 
-### Code Formatting
-```bash
-black src/ scripts/ tests/
-flake8 src/ scripts/ tests/
-```
+### Option 2: Manual Download
 
-### Jupyter Notebooks
-```bash
-jupyter notebook notebooks/
-```
+1. Download KAIST dataset from [official source](https://soonminhwang.github.io/rgbt-ped-detection/)
+2. Extract to `data/kaist/raw/`
+3. Ensure structure:
+   ```
+   data/kaist/raw/
+   └── set00/
+       ├── V000/
+       │   ├── visible/
+       │   └── lwir/
+       ├── V001/
+       └── ...
+   ```
 
-## 📈 Roadmap
+## 🛠️ Code Components
 
-- [x] RGB-Thermal alignment pipeline
-- [x] Baseline models (RGB-only, Thermal-only)
-- [x] Early fusion architecture
-- [x] Mid-fusion with Bi-XAttn
-- [x] Risk calibration
-- [ ] Intent classification head
-- [ ] Domain adaptation (LLVIP→FLIR)
-- [ ] Ablation studies
-- [ ] Video demo generation
-- [ ] Real-time inference optimization
+### 1. Model (`src/model_lite.py`)
+
+- **FastPedestrianDetector**: Main model class
+  - Dual MobileNetV3 backbones (RGB + Thermal)
+  - Concatenation fusion layer
+  - Detection head for bounding boxes and classes
+- **SimpleLoss**: Combined classification + bbox regression loss
+- **Utilities**: `create_model()`, `count_parameters()`
+
+### 2. Dataset (`src/dataset_lite.py`)
+
+- **FastKAISTDataset**: Fast data loader
+  - Loads RGB-Thermal pairs from KAIST set00
+  - Automatic train/val/test splitting
+  - Built-in augmentation
+- **create_dataloaders()**: Creates train/val/test loaders
+
+### 3. Training Utilities (`src/utils.py`)
+
+- **train_one_epoch()**: Training loop with mixed precision
+- **validate()**: Validation loop
+- **save_checkpoint()**: Save model checkpoints
+- **load_checkpoint()**: Load model checkpoints
+
+## 🎓 Academic Context
+
+**Author**: Anirudh Krishna  
+**Program**: Master of Science in Applied Machine Learning  
+**Institution**: University of Maryland, College Park  
+**Course**: MSML 640 - Computer Vision  
+**Instructor**: Sujeong Kim  
+**Date**: December 2025
 
 ## 📖 Citation
 
 If you use this code in your research, please cite:
 
 ```bibtex
-@misc{krishna2025lowlight,
-  title={Low-Light Pedestrian Risk Detection from Thermal + RGB Fusion},
+@misc{krishna2025fast,
+  title={Fast Pedestrian Detection with RGB-Thermal Fusion},
   author={Krishna, Anirudh},
   year={2025},
-  institution={University of Maryland, College Park}
+  institution={University of Maryland, College Park},
+  note={Optimized for Google Colab training}
 }
 ```
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
 - **KAIST Multispectral Pedestrian Dataset** by Soonmin Hwang et al.
-- **LLVIP Dataset** by Xinyu Jia et al.
-- **FLIR ADAS Dataset** by FLIR Systems
-- **MMDetection** framework by OpenMMLab
+- **MobileNetV3** architecture by Google Research
 - **PyTorch** deep learning framework
-
-## 👤 Author
-
-**Anirudh Krishna**  
-Master of Science in Applied Machine Learning  
-University of Maryland, College Park  
-Course: MSML 640 - Computer Vision  
-Instructor: Sujeong Kim
+- **Google Colab** for free GPU resources
 
 ## 📧 Contact
 
@@ -249,4 +264,4 @@ For questions or collaboration opportunities, please open an issue or contact vi
 
 ---
 
-**Status**: 🟢 Active Development | **Last Updated**: December 2025
+**Status**: ✅ Complete | **Last Updated**: December 2025
