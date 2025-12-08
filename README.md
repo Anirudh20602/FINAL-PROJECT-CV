@@ -6,7 +6,7 @@
 
 > A lightweight pedestrian detection system combining RGB and Thermal imagery, optimized for fast training on Google Colab with limited resources.
 
-## 🎯 Project Overview
+##  Project Overview
 
 This project implements a **fast, lightweight pedestrian detector** designed for:
 - **Quick training** on Google Colab (2-3 hours on T4 GPU)
@@ -22,7 +22,7 @@ This project implements a **fast, lightweight pedestrian detector** designed for
 ✅ **Minimal Dependencies**: Only essential packages required  
 ✅ **Ready to Deploy**: Pre-trained model included
 
-## � What Makes This Unique?
+##  What Makes This Unique?
 
 This project takes a **practical, resource-efficient approach** that differs from typical academic pedestrian detection systems:
 
@@ -77,7 +77,7 @@ Designed for **real-world constraints**, not just benchmark scores:
 
 **Bottom Line**: This project proves you don't need expensive hardware, massive datasets, or complex architectures to build a working multimodal pedestrian detector. It's about **smart engineering choices** for resource-constrained environments.
 
-## �📊 Model Architecture
+##  Model Architecture
 
 ```
 Input: RGB (3-ch) + Thermal (1-ch)
@@ -109,7 +109,7 @@ Input: RGB (3-ch) + Thermal (1-ch)
 - **Detection Head**: 3-layer CNN → Class scores + Bounding boxes
 - **Total Parameters**: ~2.5M (2x faster than ResNet-34)
 
-## � Training Results
+##  Training Results
 
 The model was trained on **Google Colab with T4 GPU** using the KAIST dataset (set00 only).
 
@@ -143,7 +143,7 @@ The model was trained on **Google Colab with T4 GPU** using the KAIST dataset (s
 - **Contains**: Model state dict, optimizer state, epoch info, loss values
 - **Status**: ✅ Trained and ready for inference
 
-## �🚀 Quick Start
+##  Quick Start
 
 ### Installation
 
@@ -214,7 +214,7 @@ for epoch in range(num_epochs):
     save_checkpoint(model, optimizer, epoch, val_loss, f'checkpoint_epoch_{epoch}.pth')
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 c:\PROJECTS\CV\FINAL PROJECT NEW\
@@ -237,7 +237,7 @@ c:\PROJECTS\CV\FINAL PROJECT NEW\
     └── kaist/                     # KAIST dataset directory
 ```
 
-## 🔬 Technical Details
+##  Technical Details
 
 ### Dataset: KAIST Multispectral Pedestrian Dataset
 
@@ -262,7 +262,7 @@ c:\PROJECTS\CV\FINAL PROJECT NEW\
 - **Inference Speed**: ~2x faster than ResNet-34 based models
 - **Memory Usage**: Optimized for Colab's 15GB GPU memory
 
-## 📚 Dataset Setup
+##  Dataset Setup
 
 ### Option 1: Download from Kaggle
 
@@ -287,7 +287,7 @@ print("Dataset path:", path)
        └── ...
    ```
 
-## 🛠️ Code Components
+##  Code Components
 
 ### 1. Model (`src/model_lite.py`)
 
@@ -313,7 +313,7 @@ print("Dataset path:", path)
 - **save_checkpoint()**: Save model checkpoints
 - **load_checkpoint()**: Load model checkpoints
 
-## 🎓 Academic Context
+##  Academic Context
 
 **Author**: Anirudh Krishna  
 **Program**: Master of Science in Applied Machine Learning  
@@ -322,7 +322,7 @@ print("Dataset path:", path)
 **Instructor**: Sujeong Kim  
 **Date**: December 2025
 
-## 📖 Citation
+##  Citation
 
 If you use this code in your research, please cite:
 
@@ -336,18 +336,18 @@ If you use this code in your research, please cite:
 }
 ```
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **KAIST Multispectral Pedestrian Dataset** by Soonmin Hwang et al.
 - **MobileNetV3** architecture by Google Research
 - **PyTorch** deep learning framework
 - **Google Colab** for free GPU resources
 
-## 📧 Contact
+##  Contact
 
 For questions or collaboration opportunities, please open an issue or contact via email.
 
