@@ -237,6 +237,7 @@ for epoch in range(num_epochs):
 
 ```
 c:\PROJECTS\CV\FINAL PROJECT NEW\
+├── CV Presentation.pptx           # Project presentation
 ├── README.md                      # This file
 ├── FINAL_REPORT.pdf              # Final project report (IEEE format)
 ├── best_model.pth                 # Pre-trained model (28.98 MB)
